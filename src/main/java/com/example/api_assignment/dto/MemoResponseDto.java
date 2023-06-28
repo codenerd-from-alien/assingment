@@ -26,4 +26,12 @@ public class MemoResponseDto {
         this.title = post.getTitle();
         this.password = post.getPassword();
     }
+
+    public MemoResponseDto(Long id, String username, String contents, String title, String password) {
+        this.id = id;
+        this.username = username;
+        this.contents = contents;
+        this.title = title;
+        this.password = password;
+    }
 }

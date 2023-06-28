@@ -3,7 +3,7 @@ package com.example.api_assignment.entity;
 
 import com.example.api_assignment.dto.MemoRequestDto;
 
-import com.example.api_assignment.dto.MemoRequestDto;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
