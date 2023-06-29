@@ -1,17 +1,11 @@
 package com.example.api_assignment.controller;
+
 import com.example.api_assignment.dto.MemoRequestDto;
 import com.example.api_assignment.dto.MemoResponseDto;
-import com.example.api_assignment.entity.Post;
+import com.example.api_assignment.service.PostService;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
 
 @RestController
@@ -25,102 +19,32 @@ public class PostController {
     }
     @PostMapping("/post")
     public MemoResponseDto createPost(@RequestBody MemoRequestDto requestDto){
-        Post post = new Post(requestDto);
-        KeyHolder keyHolder = new GeneratedKeyHolder(); // 기본 키를 반환받기 위한 객체
-
-        String sql = "INSERT INTO post (username, contents, title, password) VALUES (?, ?, ?, ?)";
-        jdbcTemplate.update( con -> {
-                    PreparedStatement preparedStatement = con.prepareStatement(sql,
-                            Statement.RETURN_GENERATED_KEYS);
-
-                    preparedStatement.setString(1, post.getUsername());
-                    preparedStatement.setString(2, post.getContents());
-                    preparedStatement.setString(3, post.getTitle());
-                    preparedStatement.setString(4, post.getPassword());
-                    return preparedStatement;
-                },
-                keyHolder);
-
-        Long id = keyHolder.getKey().longValue();
-        post.setId(id);
-
-        // Entity -> ResponseDto
-        MemoResponseDto memoResponseDto = new MemoResponseDto(post);
-
-        return memoResponseDto;
+        //컨트롤러에서 해당 서비스 클래스의 함수를 호출하기 위해서 포스트 서비스 객체를 생성한다.
+        PostService postService = new PostService(jdbcTemplate); //jdbcTemplate을 넣어줘야 sql db 저장 로직 사용가능
+        return postService.createPost(requestDto);// 클라이언트로 보내기
     }
 
     @GetMapping("/posts")
-    public List<MemoResponseDto> getPost(){
-        String sql = "SELECT * FROM post";
-        return jdbcTemplate.query(sql, new RowMapper<MemoResponseDto>() {
-            @Override
-            public MemoResponseDto mapRow(ResultSet rs, int rowNum) throws SQLException {
-                // SQL 의 결과로 받아온 Memo 데이터들을 MemoResponseDto 타입으로 변환해줄 메서드
-                Long id = rs.getLong("id");
-                String username = rs.getString("username");
-                String contents = rs.getString("contents");
-                String title = rs.getString("title");
-                String password = rs.getString("password");
-                return new MemoResponseDto(id, username, contents, title, password);
-            }
-        });
+    public List<MemoResponseDto> getPost(){//Post서비스 클래스에도 jdbc 템플릿을 주고
+        PostService postService = new PostService(jdbcTemplate);
+        return postService.getPost();//서비스 패키지으로 부터 저장한 디비를 받는 로직을 써야 하므로 이렇게 작성
     }
 
     @PutMapping("/post/{id}")
     public Long updatePost(@PathVariable Long id, @RequestBody MemoRequestDto requestDto ){
-        Post post = findById(id);
-        if(post != null) {
-            // memo 내용 수정
-            String sql = "UPDATE post SET username = ?, contents = ?, title = ?, password = ? WHERE id = ?";
-            jdbcTemplate.update(sql, requestDto.getUsername(), requestDto.getContents(),requestDto.getTitle(), requestDto.getPassword() ,id);
-
-            return id;
-        } else {
-            throw new IllegalArgumentException("선택한 메모는 존재하지 않습니다.");
-        }
+        PostService postService = new PostService(jdbcTemplate);
+        return postService.updateMemo(id, requestDto);
     }
 
     @GetMapping("/post/{id}")
     public MemoResponseDto getData(@PathVariable Long id, @RequestBody MemoRequestDto requestDto){
-        Post post = findById(id);
-        if(post !=null){
-            return new MemoResponseDto(post);
-        }else {
-            throw new IllegalArgumentException("선택한 메모는 존재하지 않습니다.");
-        }
-
+        PostService postService = new PostService(jdbcTemplate);
+        return postService.getData(id);
     }
-
     @DeleteMapping("/post/{id}")
     public Long deletePost(@PathVariable Long id,@RequestBody MemoRequestDto requestDto ){
-        Post post = findById(id);
-        if(post != null){
-            String sql ="DELETE FROM post WHERE id = ?";
-            jdbcTemplate.update(sql, id);
-            return id;
-        }else{
-            throw new IllegalArgumentException("선택한 메모는 존재하지 않습니다.");
-        }
+        PostService postService = new PostService(jdbcTemplate);
+        return postService.deletePost(id);
+
     }
-
-
-    private Post findById(Long id) {
-        String sql = "SELECT * FROM post WHERE id = ?";
-
-        return jdbcTemplate.query(sql, resultSet -> {
-            if(resultSet.next()) {
-                Post post = new Post();
-                post.setUsername(resultSet.getString("username"));
-                post.setContents(resultSet.getString("contents"));
-                post.setTitle(resultSet.getString("title"));
-                post.setPassword(resultSet.getString("password"));
-                return post;
-            } else {
-                return null;
-            }
-        }, id);
-    }
-
-
 }
